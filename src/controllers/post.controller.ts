@@ -1,11 +1,13 @@
 import {authenticate} from '@loopback/authentication';
+
+import {inject} from '@loopback/core';
 import {
   Count,
   CountSchema,
   Filter,
   FilterExcludingWhere,
-  repository,
   Where,
+  repository,
 } from '@loopback/repository';
 import {
   del,
@@ -18,6 +20,7 @@ import {
   requestBody,
   response,
 } from '@loopback/rest';
+import {SecurityBindings, UserProfile} from '@loopback/security';
 import {Post} from '../models';
 import {PostRepository} from '../repositories';
 
@@ -27,7 +30,10 @@ export class PostController {
   constructor(
     @repository(PostRepository)
     public postRepository : PostRepository,
-  ) {}
+    @inject(SecurityBindings.USER, {optional: true})
+    public user: UserProfile,
+  ) {
+  }
 
   @post('/posts')
   @response(200, {
@@ -40,13 +46,14 @@ export class PostController {
         'application/json': {
           schema: getModelSchemaRef(Post, {
             title: 'NewPost',
-            exclude: ['id'],
+            exclude: ['id','userId'],
           }),
         },
       },
     })
     post: Omit<Post, 'id'>,
   ): Promise<Post> {
+    post["userId"]=this.user.id;
     return this.postRepository.create(post);
   }
 
